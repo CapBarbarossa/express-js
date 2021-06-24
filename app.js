@@ -27,28 +27,16 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // In order to serve static files into the app like HTML that's in the public folder, we need to use the Static middleware.
-app.use(
-    express.static(
-        `${__dirname}/public`
-    )
-);
+app.use(express.static(`${__dirname}/public`));
 
 /**
  * We can create our own middleware by using the app.use method.
  * The 3rd @param is alway @next
  */
-app.use((req, res, next) => {
-    console.log(
-        'Hello from the middleware 👋'
-    );
-    // we have to always call the next() function.
-    next();
-});
 
 app.use((req, res, next) => {
     //Gets time of request.
-    req.requestTime =
-        new Date().toISOString();
+    req.requestTime = new Date().toISOString();
     next();
 });
 
