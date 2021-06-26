@@ -9,6 +9,10 @@ const morgan = require('morgan');
 // Assign the express functions to app variable in order to use all express functions.
 const app = express();
 
+// Import the app error handler.
+const AppError = require('./utils/app-error');
+const globalErrorHandler = require('./controllers/error-controller');
+
 // Import the routers.
 
 const tourRouter = require('./routes/tour-routes');
@@ -93,6 +97,16 @@ app.use((req, res, next) => {
 app.use('/api/v1/tours', tourRouter);
 
 app.use('/api/v1/users', userRouter);
+
+app.all('*', (req, res, next) => {
+    // const error = new Error(`Can't find ${req.originalUrl} on this server!`);
+    // error.status = 'fail';
+    // error.statusCode = 404;
+
+    next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+});
+
+app.use(globalErrorHandler);
 
 // -------------------------------------------------------
 
