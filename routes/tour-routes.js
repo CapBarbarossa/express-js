@@ -1,4 +1,5 @@
 const express = require('express');
+const authController = require('../controllers/auth-controller');
 
 const tourController = require('../controllers/tour-controller');
 
@@ -7,7 +8,7 @@ const router = express.Router();
 
 /**
  * We can create param middleware, where the middleware only gets executed if there's a certain parameter in the URL.
- * @prarm {val} holds the value of the parameter in the request.
+ * {val} the value of the parameter in the request.
  */
 // router.param('id', tourController.checkID);
 
@@ -22,22 +23,35 @@ const router = express.Router();
 
 // Routes for tours
 
+// Get a pre-determined set of tours using Aliasing.
 router
     .route('/top-5-tours')
     .get(tourController.aliasTopTours, tourController.getAllTours);
 
-router.route('/tour-stats').get(tourController.getTourStats);
-router.route('/monthly-plan/:year').get(tourController.getMonthlyPlan);
+// Get information about tours using aggrigation pipeline
+router
+    .route('/tour-stats')
+    .get(tourController.getTourStats);
+
+router
+    .route('/monthly-plan/:year')
+    .get(tourController.getMonthlyPlan);
+
+// Normal main routes.
 
 router
     .route('/')
-    .get(tourController.getAllTours)
+    .get(authController.protect, tourController.getAllTours)
     .post(tourController.createTour);
 
 router
     .route('/:id')
     .get(tourController.getTourById)
     .patch(tourController.updateTour)
-    .delete(tourController.deleteTour);
+    .delete(
+        authController.protect,
+        authController.restrictTo('admin', 'lead-guide'),
+        tourController.deleteTour
+    );
 
 module.exports = router;

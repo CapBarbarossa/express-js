@@ -6,8 +6,30 @@ const express = require('express');
 // Import Morgan module, it's a good module for logging information about a certain request.
 const morgan = require('morgan');
 
+const rateLimit = require('express-rate-limit');
+
+const helmet = require('helmet');
+
+const mongoSanitize = require('express-mongo-sanitize');
+
+const xss = require('xss-clean');
+
+const hpp = require('hpp');
+
 // Assign the express functions to app variable in order to use all express functions.
 const app = express();
+
+// Set security HTTP headers.
+app.use(helmet());
+
+// Use Rate limiter middleware
+const limiter = rateLimit({
+    max: 100,
+    window: 60 * 60 * 1000,
+    message: 'Too many requests from this IP, please try again in an hour',
+});
+
+app.use('/api', limiter);
 
 // Import the app error handler.
 const AppError = require('./utils/app-error');
@@ -25,7 +47,28 @@ const userRouter = require('./routes/user-routes');
  * It's a step that the request goes through while it's being processed, and that would be adding the data to the request from the body.
  * Every request in the cycle goes through all middleware in the order there're defined.
  */
-app.use(express.json());
+// Body Parser
+app.use(express.json({ limit: '10kb' }));
+
+// Data Sanitazation against NoSQL query injection.
+app.use(mongoSanitize());
+
+// Data Sanitazation against NoSQL XSS
+app.use(xss());
+
+// Prevent Parameter pollution
+app.use(
+    hpp({
+        whitelist: [
+            'duration',
+            'ratingsQuantity',
+            'ratingsAvarage',
+            'difficulty',
+            'maxGroupSize',
+            'price',
+        ],
+    })
+);
 
 // Example log : GET /api/v1/tours 200 3.001 ms - 8640
 app.use(morgan('dev'));
@@ -35,12 +78,13 @@ app.use(express.static(`${__dirname}/public`));
 
 /**
  * We can create our own middleware by using the app.use method.
- * The 3rd @param is alway @next
+ * The 3rd @param is always @next
  */
 
 app.use((req, res, next) => {
     //Gets time of request.
     req.requestTime = new Date().toISOString();
+
     next();
 });
 

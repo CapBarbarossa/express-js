@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
@@ -22,10 +23,16 @@ const userSchema = new mongoose.Schema(
             ],
         },
         photo: String,
+        role: {
+            type: String,
+            enum: ['user', 'guide', 'lead-guide', 'admin'],
+            default: 'user',
+        },
         password: {
             type: String,
             required: [true, 'Please provide a password.'],
             minlength: 8,
+            select: false,
         },
         passwordConfirm: {
             type: String,
@@ -37,6 +44,14 @@ const userSchema = new mongoose.Schema(
                 },
                 message: 'Passwords do not match!',
             },
+        },
+        passwordChangedAt: Date,
+        passwordResetToken: String,
+        passwordResetExpires: Date,
+        isActive: {
+            type: Boolean,
+            default: true,
+            select: false,
         },
     },
     {
@@ -52,7 +67,7 @@ userSchema.pre(
         // Only run if password was modified.
         if (!this.isModified('password')) return next();
 
-        // This will replace the normal password with the incrypted version
+        // This will replace the normal password with the encrypted version
         // Hash password with cost of 12 (CPU consumption)
         this.password = await bcrypt.hash(this.password, 12);
 
@@ -63,6 +78,55 @@ userSchema.pre(
     }
     // )
 );
+
+userSchema.pre('save', function (next) {
+    if (!this.isModified('password') || this.isNew) return next();
+
+    this.passwordChangedAt = Date.now() - 1000;
+    next();
+});
+
+userSchema.pre(/^find/, function (next) {
+    this.find({ isActive: { $ne: false } });
+    next();
+});
+
+userSchema.methods.correctPassword = async function (
+    candidatePassword,
+    userPassword
+) {
+    return await bcrypt.compare(candidatePassword, userPassword);
+};
+
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+    if (this.passwordChangedAt) {
+        const changedTimeStamp = parseInt(
+            this.passwordChangedAt.getTime() / 1000,
+            10
+        );
+
+        return JWTTimestamp < changedTimeStamp;
+    }
+
+    // False means not changed
+    return false;
+};
+
+userSchema.methods.createPasswordResetToken = function () {
+    // Generate a new random token that acts as a temporary password.
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    // We then encrypt this token with the built-in crypto module because it doesn't need strong encryption.
+    this.passwordResetToken = crypto
+        .createHash('sha256')
+        .update(resetToken)
+        .digest('hex');
+
+    // The reset token will reset after 10 minutes converted to milliseconds
+    this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+    return resetToken;
+};
 
 const User = mongoose.model('User', userSchema);
 
