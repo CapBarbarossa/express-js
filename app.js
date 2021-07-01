@@ -39,6 +39,7 @@ const globalErrorHandler = require('./controllers/error-controller');
 
 const tourRouter = require('./routes/tour-routes');
 const userRouter = require('./routes/user-routes');
+const reviewRouter = require('./routes/review-routes');
 
 /**
  * Adding @Middleware to the app.
@@ -62,7 +63,7 @@ app.use(
         whitelist: [
             'duration',
             'ratingsQuantity',
-            'ratingsAvarage',
+            'ratingsAverage',
             'difficulty',
             'maxGroupSize',
             'price',
@@ -141,6 +142,8 @@ app.use((req, res, next) => {
 app.use('/api/v1/tours', tourRouter);
 
 app.use('/api/v1/users', userRouter);
+
+app.use('/api/v1/reviews', reviewRouter);
 
 app.all('*', (req, res, next) => {
     // const error = new Error(`Can't find ${req.originalUrl} on this server!`);

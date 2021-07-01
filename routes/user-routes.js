@@ -14,32 +14,28 @@ const router = express.Router();
 
 router.post('/signup', authController.signup);
 router.post('/login', authController.login);
-
 router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:token', authController.resetPassword);
-router.patch(
-    '/updateMyPassword',
-    authController.protect,
-    authController.updatePassword
-);
 
-router.patch(
-    '/updateMe',
-    authController.protect,
-    userController.updateMe
-);
+// Adding middleware, protect all routes after this middleware
+router.use(authController.protect);
 
-router.delete(
-    '/deleteMe',
-    authController.protect,
-    userController.deleteMe
-);
+router.patch('/updateMyPassword', authController.updatePassword);
+
+router.get('/me', userController.getMe, userController.getUserById);
+
+router.patch('/updateMe', userController.updateMe);
+
+router.delete('/deleteMe', userController.deleteMe);
 
 /**
  * Another way to gather all actions and routes and make the code easier to maintain is to use the @route function of @app and chain all routes together.
  */
 
 // Routs for users.
+
+// Restrict all routes after this middleware
+router.use(authController.restrictTo('admin'));
 
 router
     .route('/')

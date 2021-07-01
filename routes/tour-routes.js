@@ -1,10 +1,13 @@
 const express = require('express');
 const authController = require('../controllers/auth-controller');
+const reviewRouter = require('./review-routes');
 
 const tourController = require('../controllers/tour-controller');
 
 // Creating a new Router instance to use with tours only.
 const router = express.Router();
+
+router.use('/:tourId/reviews', reviewRouter);
 
 /**
  * We can create param middleware, where the middleware only gets executed if there's a certain parameter in the URL.
@@ -28,26 +31,44 @@ router
     .route('/top-5-tours')
     .get(tourController.aliasTopTours, tourController.getAllTours);
 
-// Get information about tours using aggrigation pipeline
-router
-    .route('/tour-stats')
-    .get(tourController.getTourStats);
+// Get information about tours using aggregation pipeline
+router.route('/tour-stats').get(tourController.getTourStats);
 
 router
     .route('/monthly-plan/:year')
-    .get(tourController.getMonthlyPlan);
+    .get(
+        authController.protect,
+        authController.restrictTo('admin', 'lead-guide', 'guide'),
+        tourController.getMonthlyPlan
+    );
+
+router
+    .route('/tours-within/:distance/center/:latlng/unit/:unit')
+    .get(tourController.getToursWithin);
+
+router
+    .route('/distances/:latlng/unit/:unit')
+    .get(tourController.getDistances);
 
 // Normal main routes.
 
 router
     .route('/')
-    .get(authController.protect, tourController.getAllTours)
-    .post(tourController.createTour);
+    .get(tourController.getAllTours)
+    .post(
+        authController.protect,
+        authController.restrictTo('admin', 'lead-guide'),
+        tourController.createTour
+    );
 
 router
     .route('/:id')
     .get(tourController.getTourById)
-    .patch(tourController.updateTour)
+    .patch(
+        authController.protect,
+        authController.restrictTo('admin', 'lead-guide'),
+        tourController.updateTour
+    )
     .delete(
         authController.protect,
         authController.restrictTo('admin', 'lead-guide'),

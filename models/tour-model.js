@@ -46,11 +46,12 @@ const tourSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
-        ratingsAvarage: {
+        ratingsAverage: {
             type: Number,
             default: 4.5,
-            min: [1, 'Rating must be more than or equel 1.0'],
-            max: [5, 'Rating must be less than or equel 5'],
+            min: [1, 'Rating must be more than or equal 1.0'],
+            max: [5, 'Rating must be less than or equal 5'],
+            set: (val) => Math.round(val * 10) / 10,
         },
         price: {
             type: Number,
@@ -61,7 +62,7 @@ const tourSchema = new mongoose.Schema(
             // CUSTOM DATA VALIDATION
             validate: {
                 validator: function (val) {
-                    // This only points to currect doc on NEW document creation
+                    // This only points to correct doc on NEW document creation
                     return val < this.price;
                 },
                 message:
@@ -91,6 +92,36 @@ const tourSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        startLocation: {
+            type: {
+                type: String,
+                default: 'Point',
+                enum: ['Point'],
+            },
+            coordinates: [Number],
+            address: String,
+            description: String,
+        },
+        locations: [
+            {
+                type: {
+                    type: String,
+                    default: 'Point',
+                    enum: ['Point'],
+                },
+                coordinates: [Number],
+                address: String,
+                description: String,
+                day: Number,
+            },
+        ],
+        // Adding guides as references from the User schema
+        guides: [
+            {
+                type: mongoose.Schema.ObjectId,
+                ref: 'User',
+            },
+        ],
     },
     {
         toJSON: { virtuals: true },
@@ -98,8 +129,20 @@ const tourSchema = new mongoose.Schema(
     }
 );
 
+// tourSchema.index({price: 1});
+tourSchema.index({ price: 1, ratingsAverage: -1 });
+
+tourSchema.index({ startLocation: '2dsphere' });
+
 tourSchema.virtual('durationWeeks').get(function () {
     return this.duration / 7;
+});
+
+// Virtual populate
+tourSchema.virtual('reviews', {
+    ref: 'Review',
+    foreignField: 'tour',
+    localField: '_id',
 });
 
 // DOCUMENT MIDDLEWARE : runs before .save() and .create(), not for .update()
@@ -121,16 +164,24 @@ tourSchema.pre(/^find/, function (next) {
     next();
 });
 
+tourSchema.pre(/^find/, function (next) {
+    this.populate({
+        path: 'guides',
+        select: '-__v -passwordChangedAt',
+    });
+    next();
+});
+
 // tourSchema.post(/^find/, (docs, next) => {
 //     console.log(docs);
 //     next();
 // });
 
-// AGGRIGATION MIDDLEWARE : runs before and after aggrigation
-tourSchema.pre('aggregate', function (next) {
-    this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
-    next();
-});
+// AGGREGATION MIDDLEWARE : runs before and after aggregation
+// tourSchema.pre('aggregate', function (next) {
+//     this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+//     next();
+// });
 
 const Tour = mongoose.model('Tour', tourSchema);
 
