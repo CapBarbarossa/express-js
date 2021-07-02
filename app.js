@@ -1,5 +1,5 @@
 // It's conventional to have all express setup in app.js
-
+const path = require('path');
 // Import the express module
 const express = require('express');
 
@@ -18,6 +18,12 @@ const hpp = require('hpp');
 
 // Assign the express functions to app variable in order to use all express functions.
 const app = express();
+
+app.set('view engine', 'pug');
+app.set('views', path.join(__dirname, 'views'));
+
+// In order to serve static files into the app like HTML that's in the public folder, we need to use the Static middleware.
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Set security HTTP headers.
 app.use(helmet());
@@ -73,9 +79,6 @@ app.use(
 
 // Example log : GET /api/v1/tours 200 3.001 ms - 8640
 app.use(morgan('dev'));
-
-// In order to serve static files into the app like HTML that's in the public folder, we need to use the Static middleware.
-app.use(express.static(`${__dirname}/public`));
 
 /**
  * We can create our own middleware by using the app.use method.
@@ -139,10 +142,16 @@ app.use((req, res, next) => {
 // app.delete('/api/v1/tours/:id', deleteTour);
 
 // By using this middleware, we are defining a route-specific midlleware that only works on this URL after the rest of the middleware
+
+app.get('/', (req, res) => {
+    res.status(200).render('base', {
+        tour: 'The Forest Hiker',
+        user: 'Jimmy',
+    });
+});
+
 app.use('/api/v1/tours', tourRouter);
-
 app.use('/api/v1/users', userRouter);
-
 app.use('/api/v1/reviews', reviewRouter);
 
 app.all('*', (req, res, next) => {
