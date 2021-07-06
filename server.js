@@ -5,7 +5,9 @@ const dotenv = require('dotenv');
 
 process.on('uncaughtException', (err) => {
     console.log('UNCAUGHT EXCEPTION! Shutting down...');
-    console.log(`Error: ${err.name}, Message: ${err.message}, Stack: ${err.stack}`);
+    console.log(
+        `Error: ${err.name}, Message: ${err.message}, Stack: ${err.stack}`
+    );
     process.exit(1);
 });
 
@@ -23,6 +25,7 @@ mongoose
         useNewUrlParser: true,
         useCreateIndex: true,
         useFindAndModify: false,
+        useUnifiedTopology: true,
     })
     .then(() => console.log('DATABASE CONNECTED'));
 

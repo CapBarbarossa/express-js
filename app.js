@@ -16,6 +16,8 @@ const xss = require('xss-clean');
 
 const hpp = require('hpp');
 
+const cookieParser = require('cookie-parser');
+
 // Assign the express functions to app variable in order to use all express functions.
 const app = express();
 
@@ -46,6 +48,7 @@ const globalErrorHandler = require('./controllers/error-controller');
 const tourRouter = require('./routes/tour-routes');
 const userRouter = require('./routes/user-routes');
 const reviewRouter = require('./routes/review-routes');
+const viewRouter = require('./routes/view-routes');
 
 /**
  * Adding @Middleware to the app.
@@ -56,6 +59,8 @@ const reviewRouter = require('./routes/review-routes');
  */
 // Body Parser
 app.use(express.json({ limit: '10kb' }));
+// Cookie Parser
+app.use(cookieParser());
 
 // Data Sanitazation against NoSQL query injection.
 app.use(mongoSanitize());
@@ -88,7 +93,6 @@ app.use(morgan('dev'));
 app.use((req, res, next) => {
     //Gets time of request.
     req.requestTime = new Date().toISOString();
-
     next();
 });
 
@@ -142,14 +146,7 @@ app.use((req, res, next) => {
 // app.delete('/api/v1/tours/:id', deleteTour);
 
 // By using this middleware, we are defining a route-specific midlleware that only works on this URL after the rest of the middleware
-
-app.get('/', (req, res) => {
-    res.status(200).render('base', {
-        tour: 'The Forest Hiker',
-        user: 'Jimmy',
-    });
-});
-
+app.use('/', viewRouter);
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
